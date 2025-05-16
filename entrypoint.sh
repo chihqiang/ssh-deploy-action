@@ -11,7 +11,7 @@ export PROJECT_NAME="${INPUT_PROJECT_NAME:-}"
 export PROJECT_VERSION="${INPUT_PROJECT_VERSION:-${GITHUB_RUN_ID}}"
 
 # 读取环境变量 INPUT_TAR_ARGS，若未设置则使用默认排除.git和node_modules，赋值给 TAR_ARGS
-export TAR_ARGS="${INPUT_TAR_ARGS:-""}"
+export TAR_ARGS="${INPUT_TAR_ARGS:-}"
 
 # 读取环境变量 INPUT_DEPLOY_HOSTS，若未设置则为空，赋值给 DEPLOY_HOSTS
 export DEPLOY_HOSTS="${INPUT_DEPLOY_HOSTS:-}"
