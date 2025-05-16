@@ -191,13 +191,11 @@ for ssh_info in "${ssh_list[@]}"; do
     error "SSH 信息格式错误，跳过：$ssh_info"
     continue
   fi
-
   # 打印主机信息
-  info "用户: $ssh_user"
+  info "用户: ${ssh_user:+***隐藏***}"
   info "主机: $ssh_host"
-  info "端口: $ssh_port"
+  info "端口: ${ssh_port:+***隐藏***}"
   info "密码: ${ssh_pass:+***隐藏***}"
-
   # 创建远程目录并验证软链接
   step "检查远程目录 $REMOTE_RELEASE_DIR 和软链接 $REMOTE_WEBSITE"
   ssh_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "
