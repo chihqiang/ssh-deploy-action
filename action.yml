@@ -1,5 +1,5 @@
-name: "ssh-deploy-link-releases"
-description: "Package your project, upload it via SSH, and deploy versioned releases with symlink management and optional post-deploy commands."
+name: "ssh-deploy-release-linker"
+description: "CLI tool for safe SSH deployments: versioned releases, symlink control, and post-deploy support."
 author: "zhiqiang(zhiqiang2033@gmail.com)"
 
 inputs:
