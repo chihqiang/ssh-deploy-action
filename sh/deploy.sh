@@ -86,6 +86,10 @@ REMOTE_TAR="$REMOTE_RELEASE_DIR/$TAR_FILE_NAME"
 REMOTE_WEBSITE="$REMOTE_APP_DIR/website"
 POST_DEPLOY_CMD=${POST_DEPLOY_CMD:-""}
 
+divider
+
+info "rsync 版本: $(rsync --version)"
+info "tar 版本: $(tar --version)"
 info "项目路径: $PROJECT_PATH"
 info "项目名称: $PROJECT_NAME"
 info "项目版本: $PROJECT_VERSION"
@@ -93,12 +97,17 @@ info "打包文件名: $TAR_FILE_NAME"
 info "打包排除参数: $TAR_ARGS"
 info "打包包含参数: $TAR_CONTAIN"
 info "本地 tar 路径: $TAR_LOCAL_FILE"
+
+divider
+
 info "远程部署目录: $REMOTE_DIR"
 info "远程项目目录: $REMOTE_APP_DIR"
 info "远程版本目录: $REMOTE_RELEASE_DIR"
 info "远程 tar 包路径: $REMOTE_TAR"
 info "远程软链接路径: $REMOTE_WEBSITE"
 info "部署后命令: ${POST_DEPLOY_CMD:-无}"
+
+divider
 
 # ==== 打包 ====
 step "打包项目"
@@ -121,7 +130,10 @@ tar -czf "$TAR_LOCAL_FILE" $TAR_ARGS $TAR_CONTAIN || {
 # 打包完成提示
 success "项目打包完成"
 
-# ==== 读取部署主机 ====
+# 获取打包文件大小（以 MB 显示）
+TAR_SIZE_MB=$(du -m "$TAR_LOCAL_FILE" | awk '{print $1}')
+info "打包文件大小：${TAR_SIZE_MB} MB"
+
 
 # 从环境变量或交互输入读取主机信息
 deploy_hosts_input="${DEPLOY_HOSTS:-}"
@@ -150,6 +162,17 @@ scp_cmd() {
     sshpass -p "$pass" scp -P "$port" "$src" "$user@$host:$dst"
   else
     scp -P "$port" "$src" "$user@$host:$dst"
+  fi
+}
+
+rsync_cmd() {
+  local user=$1 host=$2 port=$3 pass=$4 src=$5 dst=$6
+  if [ -n "$pass" ]; then
+    # 密码方式需要通过 sshpass 包装 rsync
+    sshpass -p "$pass" rsync -avz --progress -e "ssh -p $port -o StrictHostKeyChecking=no" "$src" "$user@$host:$dst"
+  else
+    # SSH Key 登录
+    rsync -avz --progress -e "ssh -p $port -o StrictHostKeyChecking=no" "$src" "$user@$host:$dst"
   fi
 }
 
@@ -205,7 +228,7 @@ for ssh_info in "${ssh_list[@]}"; do
   max_retries=3
   attempt=1
   while [ $attempt -le $max_retries ]; do
-    if scp_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "$TAR_LOCAL_FILE" "$REMOTE_TAR"; then
+    if rsync_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "$TAR_LOCAL_FILE" "$REMOTE_TAR"; then
       success "上传完成"
       break
     else

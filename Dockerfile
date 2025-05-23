@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y \
     bash \
     sshpass \
     openssh-client \
+    rsync \
   && rm -rf /var/lib/apt/lists/*
 
 # 拷贝你的脚本
