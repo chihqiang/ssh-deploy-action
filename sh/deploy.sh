@@ -154,14 +154,6 @@ ssh_cmd() {
   fi
 }
 
-scp_cmd() {
-  local user=$1 host=$2 port=$3 pass=$4 src=$5 dst=$6
-  if [ -n "$pass" ]; then
-    sshpass -p "$pass" scp -P "$port" "$src" "$user@$host:$dst"
-  else
-    scp -P "$port" "$src" "$user@$host:$dst"
-  fi
-}
 
 rsync_cmd() {
   local user=$1 host=$2 port=$3 pass=$4 src=$5 dst=$6
