@@ -61,7 +61,7 @@ divider() { echo -e "\033[1;30m-------------------------------------------------
 TEMP_PATH="$(mktemp -d)"
 
 # 脚本退出时自动清理临时目录
-trap 'rm -rf "$TEMP_PATH"' EXIT INT
+trap 'rm -rf "$TEMP_PATH"' EXIT INT TERM
 # 读取项目路径（默认当前目录）
 PROJECT_PATH="${PROJECT_PATH:-$(pwd)}"
 # 获取项目名（目录名）
@@ -88,33 +88,33 @@ POST_DEPLOY_CMD=${POST_DEPLOY_CMD:-""}
 
 divider
 
-info "rsync 版本: $(rsync --version)"
-info "tar 版本: $(tar --version)"
-info "项目路径: $PROJECT_PATH"
-info "项目名称: $PROJECT_NAME"
-info "项目版本: $PROJECT_VERSION"
-info "打包文件名: $TAR_FILE_NAME"
-info "打包排除参数: $TAR_ARGS"
-info "打包包含参数: $TAR_CONTAIN"
-info "本地 tar 路径: $TAR_LOCAL_FILE"
+info "rsync version: $(rsync --version)"
+info "tar version: $(tar --version)"
+info "Project path: $PROJECT_PATH"
+info "Project name: $PROJECT_NAME"
+info "Project version: $PROJECT_VERSION"
+info "Package file name: $TAR_FILE_NAME"
+info "Package exclude args: $TAR_ARGS"
+info "Package include args: $TAR_CONTAIN"
+info "Local tar file path: $TAR_LOCAL_FILE"
 
 divider
 
-info "远程部署目录: $REMOTE_DIR"
-info "远程项目目录: $REMOTE_APP_DIR"
-info "远程版本目录: $REMOTE_RELEASE_DIR"
-info "远程 tar 包路径: $REMOTE_TAR"
-info "远程软链接路径: $REMOTE_WEBSITE"
-info "部署后命令: ${POST_DEPLOY_CMD:-无}"
+info "Remote deploy base dir: $REMOTE_DIR"
+info "Remote project dir: $REMOTE_APP_DIR"
+info "Remote release dir: $REMOTE_RELEASE_DIR"
+info "Remote tar file path: $REMOTE_TAR"
+info "Remote symlink path: $REMOTE_WEBSITE"
+info "Post deploy command: ${POST_DEPLOY_CMD:-None}"
 
 divider
 
 # ==== 打包 ====
-step "打包项目"
+step "Packaging project"
 
 # 检查项目目录是否存在
 if [ ! -d "$PROJECT_PATH" ]; then
-  error "项目路径不存在：$PROJECT_PATH"
+  error "Project path does not exist: $PROJECT_PATH"
   exit 1
 fi
 
@@ -123,25 +123,23 @@ cd "$PROJECT_PATH"
 
 # 排除无用目录并打包
 tar -czf "$TAR_LOCAL_FILE" $TAR_ARGS $TAR_CONTAIN || {
-  error "打包失败"
+  error "Packaging failed"
   exit 1
 }
 
 # 打包完成提示
-success "项目打包完成"
+success "Project packaging completed"
 
 # 获取打包文件大小（以 MB 显示）
 TAR_SIZE_MB=$(du -m "$TAR_LOCAL_FILE" | awk '{print $1}')
-info "打包文件大小：${TAR_SIZE_MB} MB"
-
-
+info "Package file size: ${TAR_SIZE_MB} MB"
 # 从环境变量或交互输入读取主机信息
 deploy_hosts_input="${DEPLOY_HOSTS:-}"
 if [ -z "$deploy_hosts_input" ]; then
-  read -p "请输入多个 SSH 信息 (user:pass@host[:port] 或 user@host[:port])，空格分隔: " deploy_hosts_input
-  info "输入部署主机：$deploy_hosts_input"
+  read -p "Please enter multiple SSH infos (user:pass@host[:port] or user@host[:port]), separated by spaces: " deploy_hosts_input
+  info "Input deploy hosts: $deploy_hosts_input"
 else
-  info "使用环境变量 DEPLOY_HOSTS"
+  info "Using environment variable DEPLOY_HOSTS"
 fi
 
 # ==== SSH/上传命令封装 ====
@@ -168,10 +166,10 @@ scp_cmd() {
 rsync_cmd() {
   local user=$1 host=$2 port=$3 pass=$4 src=$5 dst=$6
   if [ -n "$pass" ]; then
-    # 密码方式需要通过 sshpass 包装 rsync
+    # Password mode wraps rsync with sshpass
     sshpass -p "$pass" rsync -avz --progress -e "ssh -p $port -o StrictHostKeyChecking=no" "$src" "$user@$host:$dst"
   else
-    # SSH Key 登录
+    # SSH key login
     rsync -avz --progress -e "ssh -p $port -o StrictHostKeyChecking=no" "$src" "$user@$host:$dst"
   fi
 }
@@ -181,7 +179,7 @@ rsync_cmd() {
 IFS=' ' read -r -a ssh_list <<< "$deploy_hosts_input"
 for ssh_info in "${ssh_list[@]}"; do
   divider
-  step "解析主机信息：$ssh_info"
+  step "Parsing host info: $ssh_info"
 
   # 正则匹配解析 SSH 信息
   if [[ "$ssh_info" =~ ^([^:]+):([^@]+)@([^:]+):([0-9]+)$ ]]; then
@@ -205,68 +203,66 @@ for ssh_info in "${ssh_list[@]}"; do
     ssh_port=22
     ssh_pass=""
   else
-    error "SSH 信息格式错误，跳过：$ssh_info"
+    error "Invalid SSH info format, skipping: $ssh_info"
     continue
   fi
   # 打印主机信息
-  info "用户: ${ssh_user:+***隐藏***}"
-  info "主机: $ssh_host"
-  info "端口: ${ssh_port:+***隐藏***}"
-  info "密码: ${ssh_pass:+***隐藏***}"
+  info "User: ${ssh_user:+***hidden***}"
+  info "Host: $ssh_host"
+  info "Port: ${ssh_port:+***hidden***}"
+  info "Password: ${ssh_pass:+***hidden***}"
   # 创建远程目录并验证软链接
-  step "检查远程目录 $REMOTE_RELEASE_DIR 和软链接 $REMOTE_WEBSITE"
+  step "Checking remote dir $REMOTE_RELEASE_DIR and symlink $REMOTE_WEBSITE"
   ssh_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "
     mkdir -p $REMOTE_RELEASE_DIR
     if [ -e '$REMOTE_WEBSITE' ] && [ ! -L '$REMOTE_WEBSITE' ]; then
-      echo '❌ $REMOTE_WEBSITE 不是软链接，退出'
+      echo '❌ $REMOTE_WEBSITE is not a symlink, exiting'
       exit 1
     fi
   "
 
   # 上传打包文件（支持失败重试）
-  step "上传包到远程 $REMOTE_TAR"
+  step "Uploading package to remote $REMOTE_TAR"
   max_retries=3
   attempt=1
   while [ $attempt -le $max_retries ]; do
     if rsync_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "$TAR_LOCAL_FILE" "$REMOTE_TAR"; then
-      success "上传完成"
+      success "Upload completed"
       break
     else
-      warning "第 $attempt 次上传失败，重试中..."
+      warning "Upload attempt $attempt failed, retrying..."
       sleep 2
       ((attempt++))
     fi
   done
 
   if [ $attempt -gt $max_retries ]; then
-    error "上传失败超过最大重试次数，跳过该主机"
+    error "Upload failed after maximum retries, skipping this host"
     continue
   fi
 
   # 解压文件并删除 tar 包
-  step "远程解压"
+  step "Remote untar"
   ssh_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "
     cd '$REMOTE_RELEASE_DIR' && tar -xzf '${TAR_FILE_NAME}' && rm -f '${TAR_FILE_NAME}'
   "
 
   # 更新软链接指向
-  step "更新软链接指向 $REMOTE_RELEASE_DIR"
+  step "Updating symlink to $REMOTE_RELEASE_DIR"
   ssh_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "
-    ln -sfn '$REMOTE_RELEASE_DIR' '$REMOTE_WEBSITE'
-    echo '当前链接指向：' && readlink -f '$REMOTE_WEBSITE'
+    ln -snf '$REMOTE_RELEASE_DIR' '$REMOTE_WEBSITE'
   "
-  #  执行部署后命令
+
+  # 执行后续命令
   if [ -n "$POST_DEPLOY_CMD" ]; then
-    step "执行部署后命令"
+    step "Executing post deploy command"
     ssh_cmd "$ssh_user" "$ssh_host" "$ssh_port" "$ssh_pass" "
       cd '$REMOTE_WEBSITE' && $POST_DEPLOY_CMD
     "
-    success "部署后命令执行完毕"
   fi
 
-   success "部署成功：$ssh_host:$REMOTE_WEBSITE"
+  success "Deployment to $ssh_host succeeded"
 done
 
-# 打印完成提示
 divider
-success "全部部署完成 🎉"
+success "All deployments completed!"
