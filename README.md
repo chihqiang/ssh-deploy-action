@@ -83,7 +83,7 @@ curl -sSL https://raw.githubusercontent.com/chihqiang/ssh-deploy-action/main/sh/
 
 ## ❌ 常见问题
 
-1. ### 非 root 用户部署流程补充说明
+1. #### 非 root 用户部署流程补充说明
 
 当使用非 root 用户进行远程部署时，为保证部署脚本能够正常上传和解压文件，以及更新软链接，请确保以下操作：
 
@@ -95,11 +95,36 @@ sudo mkdir -p /data/apps
 sudo chown -R ubuntu:ubuntu /data/apps
 ```
 
-2. ## 文件中出现`._`前缀的文件名或文件夹
+2. ### 文件中出现`._`前缀的文件名或文件夹
 
 ~~~
 export COPYFILE_DISABLE=1
 ~~~
+
+3. ### 清理多余的releases
+
+~~~
+cd /data/apps/test/releases && \
+ls -1d */ | grep -E '^[0-9]{14}/$' | sort -r | tail -n +4 | xargs -I {} rm -rf "{}"
+~~~
+
+> 命令说明：
+>
+> 1. `ls -1d */`：列出所有目录（按名称排序）
+>
+> 2. `grep -E '^[0-9]{14}/$'`：筛选出符合日期格式的目录（14 位数字）
+>
+> 3. `sort -r`：按名称逆序排列（最新的在前）
+>
+> 4. `tail -n +4`：从第 4 行开始截取（即排除前 3 个最新的）
+>
+> 5. `xargs -I {} rm -rf "{}"`：删除筛选出的目录
+>
+> 安全提示：
+>
+>   1. 执行前请确认当前目录是否正确（`cd /data/apps/test/releases`）
+>   2. 先运行`ls -1d */ | grep -E '^[0-9]{14}/$' | sort -r | tail -n +4`查看会删除哪些目录
+>   3. 确认无误后再添加`| xargs -I {} rm -rf "{}"`执行删除
 
 ## 🐚 使用原理
 
