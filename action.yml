@@ -1,0 +1,48 @@
+name: "ssh-deploy-release-linker"
+description: "CLI tool for safe SSH deployments: versioned releases, symlink control, and post-deploy support."
+author: "zhiqiang(zhiqiang2033@gmail.com)"
+
+inputs:
+  project_path:
+    description: "Local project path. Defaults to current directory."
+    required: false
+  project_name:
+    description: "Project name. Defaults to the directory name."
+    required: false
+  project_version:
+    description: "Deployment version. Defaults to current timestamp."
+    required: false
+  tar_args:
+    description: "Extra arguments passed to 'tar' for packaging, such as --exclude='.git' --exclude='node_modules'"
+    required: false
+  tar_contain:
+    description: "Specify which files or directories to include in the archive. Defaults to '.', meaning the entire directory. Example: 'dist .env config'."
+    required: false
+    default: "."
+  deploy_hosts:
+    description: "Target hosts, format: user:pass@host[:port] or user@host[:port]. Multiple hosts separated by spaces."
+    required: true
+  remote_dir:
+    description: "Deploy to the root directory on the server"
+    required: false
+    default: "/data/apps"
+  post_deploy_cmd:
+    description: "Command to run on remote server after deployment."
+    required: false
+    
+runs:
+  using: "docker"
+  image: "Dockerfile"
+  args:
+    - ${{ inputs.project_path }}
+    - ${{ inputs.project_name }}
+    - ${{ inputs.project_version }}
+    - ${{ inputs.tar_args }}
+    - ${{ inputs.tar_contain }}
+    - ${{ inputs.deploy_hosts }}
+    - ${{ inputs.remote_dir }}
+    - ${{ inputs.post_deploy_cmd }}
+
+branding:
+  icon: 'airplay'
+  color: 'red'
